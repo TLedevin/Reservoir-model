@@ -86,7 +86,7 @@ def create_mesh(domain, Nm, Nhr, Nst, Sources_g, sigma, T_tot, phi, sg, rho_g0, 
 ########################################################################################################################
 # Increase the number of points of the mesh in an area composed by circles centered on some points and with a given radius
 # Nst gives the number of times we reprecise the meshgrid
-def precise_mesh(mesh, points_rsrvr, points_wells, N_wells, radius):
+def precise_mesh(mesh, points_wells, N_wells, radius):
     N_wells_tamp = N_wells
     while N_wells_tamp > 0:
         cell_markers = MeshFunction("bool", mesh, mesh.topology().dim())
@@ -109,10 +109,10 @@ def true_h(H, h): return((H+(h+abs(h))/2 - abs(H-(h+abs(h))/2))/2)
 # Calculate extrem values for h and p during the entire simulations
 # Nt, H, g, sg, Nz, rho_g, rho_w, List_t must be provided
 
-def min_max_pressure_h_total(Nt, H, g, sg, Nz, rho_g, rho_w, List_t):
+def min_max_pressure_h_total(folder, Nt, H, g, sg, Nz, rho_g, rho_w, List_t):
     p_min, p_max, h_min, h_max = 1e10,0,1e10,0
     for i in tqdm(range(Nt)):
-        points_init, pressure, h = extract_points_p_h(i)
+        points_init, pressure, h = extract_points_p_h(folder, i)
         p_min_t, p_max_t, h_min_t, h_max_t = np.min(pressure), np.max(pressure), np.min(h), np.max(h)
         if p_min_t < p_min : p_min = p_min_t
         if p_max_t > p_max : p_max = p_max_t
@@ -173,6 +173,22 @@ def define_problem(dt, t, Sources_g, ME1, H, phi, sg, g, rho_g, rho_w, rho_g0, r
     
     L = L_h + L_p
     
+    J = derivative(L, u, du) # Compute directional derivative about u in the direction of du (Jacobian)
+    
+    return(VFE_MP_model(J, L, bcs))
+
+def define_problem_topography(dt, t, Sources_g, ME1, H, phi, sg, g, rho_g, rho_w, rho_g0, rho_w0, mug, muw, cr, cg, cw, u, p, h, p0, h0, du, sigma, v_p, v_h, k, krg, krw, bcs, depth, angle_rad):
+    s_g_ = Function(ME1)
+    s_g_.interpolate(s(Sources_g, t, ME1, sigma))
+    
+    L_p = phi*((cr*rho_g(p)+cg*rho_g0)*sg*h*(p-p0) + rho_g(p)*sg*(h-true_h(H, h0)))*v_p*dx \
+    + dt*rho_g(p)*k*krg/mug(p)*h*inner(nabla_grad(p)  - rho_g0*g*nabla_grad(cos(angle_rad)*h) -rho_g0*g*nabla_grad(depth), nabla_grad(v_p))*dx \
+    - dt*s_g_*v_p*dx  
+
+    L_h = phi*((cr*rho_w(p) + rho_w0*cw)*(H-sg*h)*(p-p0) - rho_w(p)*sg*(h-true_h(H, h0)))*v_h*dx \
+    + dt*rho_w(p)*k*krw/muw(p)*(H-h)*inner(nabla_grad(p) + rho_w0*g*nabla_grad(cos(angle_rad)*(H-h))-rho_w0*g*nabla_grad(depth+H),nabla_grad(v_h))*dx \
+
+    L = L_h + L_p
     J = derivative(L, u, du) # Compute directional derivative about u in the direction of du (Jacobian)
     
     return(VFE_MP_model(J, L, bcs))

@@ -14,11 +14,11 @@ def plot_AOI(ax, AOI, color): ax.plot(np.array(AOI)[:,0], np.array(AOI)[:,1], co
 
 ########################################################################################################################
 # plot the pressure at the interface for a given iteration
-# Nx, Ny = number of cells used for the interpolation
 # AOI, p_min, p_max, List_t, ME1 must be provided
 
-def plot_p(iteration, Nx, Ny, AOI, p_min, p_max, List_t, ME1, xmin, xmax, ymin, ymax):
-    points = extract_points_p_h(iteration)[0] ; pressure = extract_points_p_h(iteration)[1]
+def plot_p(output_folder, figures_folder, iteration, AOI, p_min, p_max, List_t, ME1, xmin, xmax, ymin, ymax):
+    points = extract_points_p_h(output_folder, iteration)[0]
+    pressure = extract_points_p_h(output_folder, iteration)[1]
     points = [[points[i][0], points[i][1]] for i in range(len(points))]
     
     interp = RBFInterpolator(points, pressure)
@@ -41,15 +41,15 @@ def plot_p(iteration, Nx, Ny, AOI, p_min, p_max, List_t, ME1, xmin, xmax, ymin, 
     ax.set_xlabel('Distance (m)') ; ax.set_ylabel('Distance (m)')
     ax.set_xlim([xmin, xmax])
     ax.set_ylim([ymin, ymax])
-    plt.savefig('Diffusion_model/Figures/QUEST_p_int.png', dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(figures_folder, 'QUEST_p_int.png'), dpi=300, bbox_inches='tight')
 
 ########################################################################################################################
 # plot the h for a given iteration
-# Nx, Ny = number of cells used for the interpolation
 # AOI, h_min, h_max, List_t, ME1 must be provided
 
-def plot_h(iteration, Nx, Ny, AOI, h_min, h_max, List_t, ME1, xmin, xmax, ymin, ymax):
-    points = extract_points_p_h(iteration)[0] ; h = extract_points_p_h(iteration)[2]
+def plot_h(output_folder, figures_folder, iteration, AOI, h_min, h_max, List_t, ME1, xmin, xmax, ymin, ymax):
+    points = extract_points_p_h(output_folder, iteration)[0]
+    h = extract_points_p_h(output_folder, iteration)[2]
     points = [[points[i][0], points[i][1]] for i in range(len(points))]
     
     interp = RBFInterpolator(points, h)
@@ -72,7 +72,7 @@ def plot_h(iteration, Nx, Ny, AOI, h_min, h_max, List_t, ME1, xmin, xmax, ymin, 
     ax.set_xlabel('Distance (m)') ; ax.set_ylabel('Distance (m)')
     ax.set_xlim([xmin, xmax])
     ax.set_ylim([ymin, ymax])
-    plt.savefig('Diffusion_model/Figures/QUEST_h.png', dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(figures_folder, 'QUEST_h.png'), dpi=300, bbox_inches='tight')
 
 ########################################################################################################################
 # plot temporal profile of a source
@@ -230,7 +230,7 @@ def plot_phi_k_H_depth(Folder, Sources_g, Out_rsrvr, k, H, phi, depth):
     ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/1e3))
     
     plt.subplot(2,2,1) ; plot_wells(Sources_g, 'red')
-    plt.colorbar(plot(1e-3*depth, title='Depth (km)', mode='color', vmax=3.1), orientation='vertical')
+    plt.colorbar(plot(depth, title='Depth (m)', mode='color'), orientation='vertical')
     plt.plot(*Out_rsrvr.T, color='black', label='Reservoir outline')
     plt.xlabel("Distance (m)") ; plt.ylabel("Distance (m)")
     plt.gca().xaxis.set_major_formatter(ticks_x) ; plt.gca().yaxis.set_major_formatter(ticks_y)
