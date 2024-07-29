@@ -5,14 +5,13 @@ import numpy as np
 import math
 import os
 
-from colorama import Fore, Back, Style
-
 from tqdm import tqdm
-from mshr import*
+from mshr import generate_mesh
 
 from scipy.interpolate import griddata
 import pickle as pkl
-from Auxiliary_class import*
+from dolfin import MeshFunction, cells, refine, Function, Expression, dx, inner, nabla_grad, derivative, cos
+from Auxiliary_class import VFE_MP_model
 
 ########################################################################################################################
 # Extract lists of points, pressure values and gas thickness values for a given iteration
