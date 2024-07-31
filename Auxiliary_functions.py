@@ -17,34 +17,22 @@ from Auxiliary_class import VFE_MP_model
 # Extract lists of points, pressure values and gas thickness values for a given iteration
 def extract_points_p_h(folder, iteration):
     reader_p = vtk.vtkXMLUnstructuredGridReader()
-    reader_p.SetFileName(file_name_p(folder, iteration))
+    reader_p.SetFileName(file_name(folder, iteration, "p"))
     reader_p.Update()  # Needed because of GetScalarRange
 
     points = vtk_to_numpy(reader_p.GetOutput().GetPoints().GetData()).tolist()
     pressure_int = (1e-5*vtk_to_numpy(reader_p.GetOutput().GetPointData().GetArray(0))).tolist()
     reader_h = vtk.vtkXMLUnstructuredGridReader()
-    reader_h.SetFileName(file_name_h(folder, iteration))
+    reader_h.SetFileName(file_name(folder, iteration, "h"))
     reader_h.Update()  # Needed because of GetScalarRange
     h = vtk_to_numpy(reader_h.GetOutput().GetPointData().GetArray(0)).tolist()
     return(points, pressure_int, h)
 
 ########################################################################################################################
-# Search name of the file that values of pressures for a given iteration
-def file_name_p(folder, iteration):
-    if iteration == 0 : return(os.path.join(folder, "p/output_p000000.vtu"))
-    digits = int(math.log10(iteration))+1
-    car = ""
-    for i in range(6-digits): car += "0"
-    return(os.path.join(folder, "p/output_p" + car + str(iteration)+ ".vtu"))
-
-########################################################################################################################
-# Search name of the file that values of pressures for a given iteration
-def file_name_h(folder, iteration):
-    if iteration == 0 : return(os.path.join(folder, "h/output_h000000.vtu"))
-    digits = int(math.log10(iteration))+1
-    car = ""
-    for i in range(6-digits): car += "0"
-    return(os.path.join(folder, "h/output_h" + car + str(iteration)+ ".vtu"))
+# Search name of the file containing data of an iteration? var can be "p" (pressure), or "h" (gas height)
+def file_name(folder, iteration, var):
+    digits = str(iteration).zfill(6)
+    return f"{folder}/{var}/output_{var}{digits}.vtu"
 
 ########################################################################################################################
 # Convert time t in seconds to calendar format (min, hour, day, year)
@@ -331,11 +319,11 @@ def export_h(iteration, Nx, Ny, Nz, List_t, AOI, Outline, phi0, k0):
 def extract_pressure_list(folder_output, Nt):
     pressure_list = []
     reader_p = vtk.vtkXMLUnstructuredGridReader()
-    reader_p.SetFileName(file_name_p(folder_output, 0))
+    reader_p.SetFileName(file_name(folder_output, 0, "p"))
     reader_p.Update()
     points = vtk_to_numpy(reader_p.GetOutput().GetPoints().GetData()).tolist()
     for i in tqdm(range(Nt)):
-        reader_p.SetFileName(file_name_p(folder_output, i))
+        reader_p.SetFileName(file_name(folder_output, i, "p"))
         reader_p.Update()  # Needed because of GetScalarRange
         pressure_int = vtk_to_numpy(reader_p.GetOutput().GetPointData().GetArray(0)).tolist()
         pressure_list.append(pressure_int)
