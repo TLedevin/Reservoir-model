@@ -7,6 +7,7 @@ import os
 
 from tqdm import tqdm
 from mshr import generate_mesh
+from scipy.interpolate import RBFInterpolator
 
 from scipy.interpolate import griddata
 import pickle as pkl
@@ -54,7 +55,7 @@ def create_mesh(domain, Nm, Nhr, Nst, Sources_g, sigma, T_tot, phi, sg, rho_g0, 
         cell_markers = MeshFunction("bool", mesh, mesh.topology().dim())
         for c in cells(mesh):
             cell_markers[c] = False
-            for source in Sources_g :
+            for source in Sources_g:
                 p = source[0]
                 rate = np.nanmean(source[1])
                 Hydraulic_radius = np.sqrt(np.abs(rate)*T_tot/(phi*sg*rho_g0*H))
@@ -169,11 +170,11 @@ def define_problem_topography(dt, t, Sources_g, ME1, H, phi, sg, g, rho_g, rho_w
     s_g_.interpolate(s(Sources_g, t, ME1, sigma))
     
     L_p = phi*((cr*rho_g(p)+cg*rho_g0)*sg*h*(p-p0) + rho_g(p)*sg*(h-true_h(H, h0)))*v_p*dx \
-    + dt*rho_g(p)*k*krg/mug(p)*h*inner(nabla_grad(p)  - rho_g0*g*nabla_grad(cos(angle_rad)*h) -rho_g0*g*nabla_grad(depth), nabla_grad(v_p))*dx \
+    + dt*rho_g(p)*k*krg/mug(p)*h*inner(nabla_grad(p)  - rho_g0*g*nabla_grad(cos(angle_rad)*h) + rho_g0*g*nabla_grad(depth), nabla_grad(v_p))*dx \
     - dt*s_g_*v_p*dx  
 
     L_h = phi*((cr*rho_w(p) + rho_w0*cw)*(H-sg*h)*(p-p0) - rho_w(p)*sg*(h-true_h(H, h0)))*v_h*dx \
-    + dt*rho_w(p)*k*krw/muw(p)*(H-h)*inner(nabla_grad(p) + rho_w0*g*nabla_grad(cos(angle_rad)*(H-h))-rho_w0*g*nabla_grad(depth+H),nabla_grad(v_h))*dx \
+    + dt*rho_w(p)*k*krw/muw(p)*(H-h)*inner(nabla_grad(p) + rho_w0*g*nabla_grad(cos(angle_rad)*(H-h)) + rho_w0*g*nabla_grad(depth+H),nabla_grad(v_h))*dx \
 
     L = L_h + L_p
     J = derivative(L, u, du) # Compute directional derivative about u in the direction of du (Jacobian)
@@ -197,65 +198,64 @@ def injected_mass(t, Sources_g):
 ########################################################################################################################
 # Create functions for permeability, porosity, thickness and depth
 
-def H_function(H_points, H_field, ME1):
+def H_function(mesh, H_points, H_field, ME1):
     H = Function(ME1)
-    H_data = griddata(H_points, H_field, ME1.tabulate_dof_coordinates(), method='nearest')
-    H_tamp = np.nanmean(H_data)
+    interp = RBFInterpolator(H_points, H_field)
+    H_data = interp(ME1.tabulate_dof_coordinates())
+    H_moy = np.nanmean(H_data)
     for l in range(ME1.dim()):
         if np.isnan(H_data[l]): # if there is a NaN value, we give the precedent value to the vector.
-            H.vector()[l] = H_tamp
-            H_tamp = H.vector()[l]
-        else:
-            H.vector()[l] = H_data[l]
-            H_tamp = H_data[l]
+            H.vector()[l] = H_moy
+            print('Warning : NaN found after interpolation, replacing by mean value')
+        else: H.vector()[l] = H_data[l]
     return(H)
 
-def k_function(k_points, k_field, ME1):
+def k_function(mesh, k_points, k_field, ME1):
     k = Function(ME1)
-    k_data = griddata(k_points, k_field, ME1.tabulate_dof_coordinates(), method='linear')
-    k_tamp = np.nanmean(k_data)
+    interp = RBFInterpolator(k_points, k_field)
+    k_data = interp(ME1.tabulate_dof_coordinates())
+    k_moy = np.nanmean(k_data)
     for l in range(ME1.dim()):
         if np.isnan(k_data[l]): # if there is a NaN value, we give the precedent value to the vector.
-            k.vector()[l] = k_tamp
-        else:
-            k.vector()[l] = k_data[l]
-            k_tamp = k_data[l]
+            k.vector()[l] = k_moy
+            print('Warning : NaN found after interpolation, replacing by mean value')
+        else: k.vector()[l] = k_data[l]
     return(k)
 
-def phi_function(phi_points, phi_field, ME1):
+def phi_function(mesh, phi_points, phi_field, ME1):
     phi = Function(ME1)
-    phi_data = griddata(phi_points, phi_field, ME1.tabulate_dof_coordinates(), method='linear')
-    phi_tamp = np.nanmean(phi_data)
+    interp = RBFInterpolator(phi_points, phi_field)
+    phi_data = interp(ME1.tabulate_dof_coordinates())
+    phi_moy = np.nanmean(phi_data)
     for l in range(ME1.dim()):
         if np.isnan(phi_data[l]): # if there is a NaN value, we give the precedent value to the vector.
-            phi.vector()[l] = phi_tamp
-        else:
-            phi.vector()[l] = phi_data[l]
-            phi_tamp = phi_data[l]
+            phi.vector()[l] = phi_moy
+            print('Warning : NaN found after interpolation, replacing by mean value')
+        else: phi.vector()[l] = phi_data[l]
     return(phi)
 
-def depth_function(depth_points, depth_field, ME1):
+def depth_function(mesh, depth_points, depth_field, ME1):
     depth = Function(ME1)
-    depth_data = griddata(depth_points, depth_field, ME1.tabulate_dof_coordinates(), method='linear')
-    depth_tamp = np.nanmean(depth_data)
+    interp = RBFInterpolator(depth_points, depth_field)
+    depth_data = interp(ME1.tabulate_dof_coordinates())
+    depth_moy = np.nanmean(depth_data)
     for l in range(ME1.dim()):
         if np.isnan(depth_data[l]): # if there is a NaN value, we give the precedent value to the vector.
-            depth.vector()[l] = depth_tamp
-        else:
-            depth.vector()[l] = depth_data[l]
-            depth_tamp = depth_data[l]
+            depth.vector()[l] = depth_moy
+            print('Warning : NaN found after interpolation, replacing by mean value')
+        else: depth.vector()[l] = depth_data[l]
     return(depth)
 
-def angle_function(angle_points, angle_field, ME1):
+def angle_function(mesh, angle_points, angle_field, ME1):
     angle = Function(ME1)
-    angle_data = griddata(angle_points, angle_field, ME1.tabulate_dof_coordinates(), method='linear')
-    angle_tamp = np.nanmean(angle_data)
+    interp = RBFInterpolator(angle_points, angle_field)
+    angle_data = interp(ME1.tabulate_dof_coordinates())
+    angle_moy = np.nanmean(angle_data)
     for l in range(ME1.dim()):
         if np.isnan(angle_data[l]): # if there is a NaN value, we give the precedent value to the vector.
-            angle.vector()[l] = angle_tamp
-        else:
-            angle.vector()[l] = angle_data[l]
-            angle_tamp = angle_data[l]
+            angle.vector()[l] = angle_moy
+            print('Warning : NaN found after interpolation, replacing by mean value')
+        else: angle.vector()[l] = angle_data[l]
     return(angle)
 
 ########################################################################################################################
