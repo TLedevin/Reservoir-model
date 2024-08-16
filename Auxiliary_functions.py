@@ -198,10 +198,13 @@ def injected_mass(t, Sources_g):
 ########################################################################################################################
 # Create functions for permeability, porosity, thickness and depth
 
-def H_function(mesh, H_points, H_field, ME1):
+def H_function(H_points, H_field, ME1, type):
     H = Function(ME1)
-    interp = RBFInterpolator(H_points, H_field)
-    H_data = interp(ME1.tabulate_dof_coordinates())
+    if type == 'RBF':
+        interp = RBFInterpolator(H_points, H_field)
+        H_data = interp(ME1.tabulate_dof_coordinates())
+    else:
+        H_data = griddata(H_points, H_field, ME1.tabulate_dof_coordinates(), method='linear')
     H_moy = np.nanmean(H_data)
     for l in range(ME1.dim()):
         if np.isnan(H_data[l]): # if there is a NaN value, we give the precedent value to the vector.
@@ -210,10 +213,13 @@ def H_function(mesh, H_points, H_field, ME1):
         else: H.vector()[l] = H_data[l]
     return(H)
 
-def k_function(mesh, k_points, k_field, ME1):
+def k_function(k_points, k_field, ME1, type):
     k = Function(ME1)
-    interp = RBFInterpolator(k_points, k_field)
-    k_data = interp(ME1.tabulate_dof_coordinates())
+    if type == 'RBF':
+        interp = RBFInterpolator(k_points, k_field)
+        k_data = interp(ME1.tabulate_dof_coordinates())
+    else:
+        k_data = griddata(k_points, k_field, ME1.tabulate_dof_coordinates(), method='linear')
     k_moy = np.nanmean(k_data)
     for l in range(ME1.dim()):
         if np.isnan(k_data[l]): # if there is a NaN value, we give the precedent value to the vector.
@@ -222,10 +228,13 @@ def k_function(mesh, k_points, k_field, ME1):
         else: k.vector()[l] = k_data[l]
     return(k)
 
-def phi_function(mesh, phi_points, phi_field, ME1):
+def phi_function(phi_points, phi_field, ME1, type):
     phi = Function(ME1)
-    interp = RBFInterpolator(phi_points, phi_field)
-    phi_data = interp(ME1.tabulate_dof_coordinates())
+    if type == 'RBF':
+        interp = RBFInterpolator(phi_points, phi_field)
+        phi_data = interp(ME1.tabulate_dof_coordinates())
+    else:
+        phi_data = griddata(phi_points, phi_field, ME1.tabulate_dof_coordinates(), method='linear')
     phi_moy = np.nanmean(phi_data)
     for l in range(ME1.dim()):
         if np.isnan(phi_data[l]): # if there is a NaN value, we give the precedent value to the vector.
@@ -234,10 +243,13 @@ def phi_function(mesh, phi_points, phi_field, ME1):
         else: phi.vector()[l] = phi_data[l]
     return(phi)
 
-def depth_function(mesh, depth_points, depth_field, ME1):
+def depth_function(depth_points, depth_field, ME1, type):
     depth = Function(ME1)
-    interp = RBFInterpolator(depth_points, depth_field)
-    depth_data = interp(ME1.tabulate_dof_coordinates())
+    if type == 'RBF':
+        interp = RBFInterpolator(depth_points, depth_field)
+        depth_data = interp(ME1.tabulate_dof_coordinates())
+    else:
+        depth_data = griddata(depth_points, depth_field, ME1.tabulate_dof_coordinates(), method='linear')
     depth_moy = np.nanmean(depth_data)
     for l in range(ME1.dim()):
         if np.isnan(depth_data[l]): # if there is a NaN value, we give the precedent value to the vector.
@@ -246,10 +258,13 @@ def depth_function(mesh, depth_points, depth_field, ME1):
         else: depth.vector()[l] = depth_data[l]
     return(depth)
 
-def angle_function(mesh, angle_points, angle_field, ME1):
+def angle_function(angle_points, angle_field, ME1, type):
     angle = Function(ME1)
-    interp = RBFInterpolator(angle_points, angle_field)
-    angle_data = interp(ME1.tabulate_dof_coordinates())
+    if type == 'RBF':
+        interp = RBFInterpolator(angle_points, angle_field)
+        angle_data = interp(ME1.tabulate_dof_coordinates())
+    else:
+        angle_data = griddata(angle_points, angle_field, ME1.tabulate_dof_coordinates(), method='linear')
     angle_moy = np.nanmean(angle_data)
     for l in range(ME1.dim()):
         if np.isnan(angle_data[l]): # if there is a NaN value, we give the precedent value to the vector.
